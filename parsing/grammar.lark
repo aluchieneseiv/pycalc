@@ -1,4 +1,5 @@
-?start: expr
+?start: statement
+    | expr
 
 ?expr: oop_1
     | NAME "=" expr    -> assign_var
@@ -15,11 +16,14 @@
     | atom
 
 ?atom: /[-+]?[0-9]+\.?[0-9]*([eE][-+]?[0-9]+)?/ -> number
-    | NAME                                  -> var
+    | NAME                                      -> var
     | "(" expr ")"
     | function_call
 
-?function_call: NAME "(" expr? ("," expr)* ")" -> evaluate
+?function_call: NAME "(" expr? ("," expr)* ")"  -> evaluate
+
+?statement: "/clear" NAME? ("," NAME)*           -> clear_vars
+    | "/vars"                                    -> show_vars
 
 %import common.CNAME -> NAME
 %import common.WS_INLINE
