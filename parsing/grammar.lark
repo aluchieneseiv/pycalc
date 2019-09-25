@@ -1,0 +1,26 @@
+?start: expr
+
+?expr: oop_1
+    | NAME "=" expr    -> assign_var
+
+?oop_1: oop_2
+    | oop_1 "+" oop_2   -> add
+    | oop_1 "-" oop_2   -> sub
+
+?oop_2: oop_3
+    | oop_2 "*" oop_3   -> mul
+    | oop_2 "/" oop_3   -> div
+
+?oop_3: atom "^" oop_3  -> pow
+    | atom
+
+?atom: /[-+]?[0-9]+\.?[0-9]*([eE][-+]?[0-9]+)?/ -> number
+    | NAME                                  -> var
+    | "(" expr ")"
+    | function_call
+
+?function_call: NAME "(" expr? ("," expr)* ")" -> evaluate
+
+%import common.CNAME -> NAME
+%import common.WS_INLINE
+%ignore WS_INLINE
