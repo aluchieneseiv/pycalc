@@ -30,8 +30,17 @@ class CalculateTree(Transformer):
     neg = lambda _, x: np.negative(x)
     abs = lambda _, x: np.abs(x)
 
+    ternary_op = lambda _, cond, yes, no: yes if cond else no
+
     equals = lambda _, x, y: np.all(np.equal(x, y))
     differs = lambda _, x, y: not np.all(np.equal(x, y))
+    less = lambda _, x, y: x < y
+    less_eq = lambda _, x, y: x <= y
+    greater = lambda _, x, y: x > y
+    greater_eq = lambda _, x, y: x >= y
+    and_op = lambda _, x, y: x and y 
+    or_op = lambda _, x, y: x or y 
+    not_op = lambda _, x: not x
 
     builtins = {o: getattr(np, o) for o in np.__all__ if not isclass(getattr(np, o))}
 
