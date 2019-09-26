@@ -44,7 +44,7 @@
 
 ?matrix: "[" matrix_row (";" matrix_row)+ "]"       -> form_matrix
 
-?matrix_row: expr (","? expr)*                  -> matrix_row
+?matrix_row: expr ("," expr)*                       -> matrix_row
 
 ?array: "[" matrix_row "]"                          -> form_array
 

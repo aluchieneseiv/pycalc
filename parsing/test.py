@@ -116,11 +116,11 @@ class CalculateTree(Transformer):
     def matrix_ref(self, name, N, M=None):
         if M is None:
             def setter(x):
-                self.vars[name][0][int(N)] = x
+                self.vars[name][int(N)] = x
 
                 return self.vars[name]
 
-            getter = lambda: self.vars[name][0][int(N)]
+            getter = lambda: self.vars[name][int(N)]
         else:
             def setter(x):
                 self.vars[name][int(M)][int(N)] = x
