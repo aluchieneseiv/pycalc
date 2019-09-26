@@ -1,8 +1,10 @@
 from lark import Lark, Transformer, v_args
 import math
 import numpy as np
+from inspect import isclass
 
-with open("grammar.lark", "r") as f:
+
+with open("parsing/grammar.lark", "r") as f:
     grammar = f.read()
 
 class Ref:
@@ -19,77 +21,48 @@ class CalculateTree(Transformer):
     ediv = lambda _, x, y: np.divide(x, y)
     epow = lambda _, x, y: np.power(x, y)
 
-    mul = lambda _, x, y: x * y
+    mul = lambda _, x, y: np.dot(x, y)
     div = lambda _, x, y: x / y
     solve = lambda _, x, y: np.linalg.solve(x, y)
 
-    def pow(self, x, y):
-        if isinstance(x, np.matrix):
-            return np.linalg.matrix_power(x, int(y))
-        else:
-            return x ** y
+    pow = lambda _, x, y: x ** y
 
     neg = lambda _, x: np.negative(x)
-    pos = lambda _, x: np.positive(x)
+    abs = lambda _, x: np.abs(x)
 
     equals = lambda _, x, y: np.all(np.equal(x, y))
     differs = lambda _, x, y: not np.all(np.equal(x, y))
 
-    decimal = np.float64
+    builtins = {o: getattr(np, o) for o in np.__all__ if not isclass(getattr(np, o))}
 
-    builtins = {
-        # numpy scalars
-        "sin": np.sin,
-        "sinh": np.sinh,
-        "cos": np.cos,
-        "cosh": np.cosh,
-        "tan": np.tan,
-        "tanh": np.tanh,
-        "arcsin": np.arcsin,
-        "arcsinh": np.arcsinh,
-        "arccos": np.arccos,
-        "arccosh": np.arccosh,
-        "arctan": np.arctan,
-        "arctanh": np.arctanh,
-        "atan2": np.arctan2,
-        "sqrt": np.sqrt,
-        "exp": np.exp,
-        "log": np.log,
-        "log10": np.log10,
-        "log1p": np.log1p,
-        "floor": np.floor,
-        "ceil": np.ceil,
-        "round": np.round,
-        "abs": np.abs,
-        "interp": np.interp,
-        "pi": np.pi,
-        "e": np.e,
-
+    builtins.update({
         # numpy matrix
-        "eye": lambda n, m = None: np.eye(int(n), int(m) if m else None),
         "rank": np.linalg.matrix_rank,
         "det": np.linalg.det,
-        "dot": np.dot,
         "norm": np.linalg.norm,
         "inv": np.linalg.inv,
-        "zeros": lambda *shape: np.zeros([int(x) for x in shape]),
-        "ones": lambda *shape: np.ones([int(x) for x in shape]),
-        "arange": np.arange,
-        "linspace": np.linspace,
+        "zeros": lambda *shape: np.zeros(shape),
+        "ones": lambda *shape: np.ones(shape),
+        'j': np.complex(0, 1),
+        'complex': np.complex,
 
         # misc
         "valinterp": lambda f, a, b: a + (b - a) * f,
         "version": "0.0.1",
-    }
+    })
 
-    def get_ordered_args(self, *args):
-        return args
 
-    def evaluate(self, var, args = None):
-        if not args:
-            return var.get()()
-        else:
-            return var.get()(*args)
+    def decimal(self, x):
+        try:
+            return int(x)
+        except:
+            return np.float64(x)
+
+    def decimalj(self, x):
+        return complex(x)
+
+    def evaluate(self, var, *args):
+        return var.get()(*args)
 
     def __init__(self):
         self.vars = {}

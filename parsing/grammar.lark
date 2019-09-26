@@ -4,11 +4,11 @@
 ?expr: oop_1
     | ref "=" expr      -> set_var
     | expr "==" expr    -> equals
-    | expr "~=" expr    -> differs
+    | expr "!=" expr    -> differs
 
 ?oop_1: oop_2
     | "-" oop_2         -> neg
-    | "+" oop_2         -> pos
+    | "|" oop_2 "|"     -> abs
     | oop_1 "+" oop_2   -> add
     | oop_1 "-" oop_2   -> sub
 
@@ -37,18 +37,18 @@
     | array
     | matrix
 
-?scalar: /[+-]?\d+\.?\d*([eE][-+]?\d+)?/            -> decimal
-    | /[+-]?\d*\.?\d+([eE][-+]?\d+)?/               -> decimal
+?scalar: /\d+\.?\d*([eE][-+]?\d+)?/            -> decimal
+    | /\d*\.?\d+([eE][-+]?\d+)?/               -> decimal
+    | /\d+\.?\d*([eE][-+]?\d+)?j/              -> decimalj
+    | /\d*\.?\d+([eE][-+]?\d+)?j/              -> decimalj
 
 ?matrix: "[" matrix_row (";" matrix_row)+ "]"       -> form_matrix
 
-?matrix_row: scalar (","? scalar)*                  -> matrix_row
+?matrix_row: expr (","? expr)*                  -> matrix_row
 
 ?array: "[" matrix_row "]"                          -> form_array
 
-?function_ordered_args: expr? ("," expr)*           -> get_ordered_args
-
-?function_call: ref "(" function_ordered_args ")"   -> evaluate
+?function_call: ref "(" expr? ("," expr)* ")"       -> evaluate
 
 ?command: "/clear" variable? ("," variable)*        -> clear_vars
     | "/vars"                                       -> show_vars
