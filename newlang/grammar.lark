@@ -1,41 +1,41 @@
 ?start: expr
 
 ?expr: oop_bool
-    | oop_bool "?" oop_add ":" oop_add -> op_ternary
+    | oop_bool "?" oop_add ":" oop_add -> np_where
 
 ?oop_bool : oop_cond
-    | oop_bool "&&" oop_cond    -> op_and
-    | oop_bool "||" oop_cond    -> op_or
-    | "!" oop_cond              -> op_not
+    | oop_bool "&&" oop_cond    -> np_logical_and
+    | oop_bool "||" oop_cond    -> np_logical_or
+    | "!" oop_cond              -> np_logical_not
 
 ?oop_cond: oop_add
     | oop_add "=" oop_cond      -> op_assign
     | oop_add "==" oop_add      -> op_equals
     | oop_add "!=" oop_add      -> op_differs
-    | oop_add "<" oop_add       -> op_less
-    | oop_add "<=" oop_add      -> op_less_eq
-    | oop_add ">" oop_add       -> op_greater
-    | oop_add ">=" oop_add      -> op_greater_eq
+    | oop_add "<" oop_add       -> np_less
+    | oop_add "<=" oop_add      -> np_less_equal
+    | oop_add ">" oop_add       -> np_greater
+    | oop_add ">=" oop_add      -> np_greater_equal
 
 ?oop_add: oop_mul
-    | "-" oop_mul               -> op_neg
-    | "+" oop_mul               -> op_plus
-    | oop_add "+" oop_mul       -> op_add
-    | oop_add "-" oop_mul       -> op_sub
+    | "-" oop_mul               -> np_negative
+    | "|" oop_mul "|"           -> np_abs
+    | oop_add "+" oop_mul       -> np_add
+    | oop_add "-" oop_mul       -> np_subtract
 
 ?oop_mul: oop_exp
-    | oop_mul "*" oop_exp       -> op_mul
-    | oop_mul ".*" oop_exp      -> op_emul
-    | oop_mul "/" oop_exp       -> op_div
-    | oop_mul "./" oop_exp      -> op_ediv
+    | oop_mul "*" oop_exp       -> np_dot
+    | oop_mul ".*" oop_exp      -> np_multiply
+    | oop_mul "/" oop_exp       -> np_divide
+    | oop_mul "./" oop_exp      -> np_divide
     | oop_mul "\\" oop_exp      -> op_solve
-    | oop_mul "%" oop_exp       -> op_modulo
+    | oop_mul "%" oop_exp       -> np_mod
 
 ?oop_exp: value
     | value "^" oop_exp         -> op_pow
 
 ?value: "(" expr ")"
-    | "|" expr "|"                      -> op_abs
+    | "|" expr "|"                      -> np_abs
     | value "(" expr? ("," expr)* ")"   -> op_evaluate
     | constant
     | variable

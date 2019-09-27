@@ -1,13 +1,12 @@
-from lark import Lark, Transformer, v_args
-from lark.exceptions import VisitError, UnexpectedInput
-import numpy as np
-from inspect import isclass
-from parsetypes import Context, Const, Var, Expr, EmptyContext
 import re
+from inspect import isclass
 
+import numpy as np
+from lark import Lark, Transformer, v_args
+from lark.exceptions import UnexpectedInput, VisitError
 
-with open("newlang/grammar.lark", "r") as f:
-    grammar = f.read()
+from operations import op
+from parsetypes import Const, Context, EmptyContext, Expr, Var
 
 
 @v_args(inline=True)
@@ -15,7 +14,7 @@ class CalculateTree(Transformer):
     from operations import op_plus, op_neg, op_not, op_add, op_sub, \
         op_mul, op_div, op_modulo, op_pow, op_greater, op_greater_eq, \
         op_less, op_less_eq, op_assign, op_equals, op_differs, op_and, \
-        op_or, op_ternary, op_evaluate, op
+        op_or, op_ternary, op_evaluate
     
     numpy_regex = re.compile(r"np_(\w[\w\d]*)")
 
@@ -73,7 +72,8 @@ class State:
     })
 
     def __init__(self):
-        self.rules = Lark(grammar, parser='lalr', transformer=CalculateTree())
+        self.rules = Lark.open("newlang/grammar.lark", parser='lalr')
+        self.transformer = CalculateTree()
         self.ctx = Context().with_parent(self.GlobalCtx)
 
     def clear(self):
@@ -81,6 +81,7 @@ class State:
 
     def parse(self, line):
         tree = self.rules.parse(line)
+        tree = self.transformer.transform(tree)
 
         return tree.get(self.ctx)
 
