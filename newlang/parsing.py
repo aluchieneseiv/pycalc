@@ -1,9 +1,9 @@
 from lark import Lark, Transformer, v_args
 from lark.exceptions import VisitError, UnexpectedInput
-import math
 import numpy as np
 from inspect import isclass
 from parsetypes import Context, Const, Var, Expr, EmptyContext
+import re
 
 
 with open("newlang/grammar.lark", "r") as f:
@@ -15,8 +15,22 @@ class CalculateTree(Transformer):
     from operations import op_plus, op_neg, op_not, op_add, op_sub, \
         op_mul, op_div, op_modulo, op_pow, op_greater, op_greater_eq, \
         op_less, op_less_eq, op_assign, op_equals, op_differs, op_and, \
-        op_or, op_ternary, op_evaluate
+        op_or, op_ternary, op_evaluate, op
     
+    numpy_regex = re.compile(r"np_(\w[\w\d]*)")
+
+    def _call_userfunc(self, tree, new_children=None):
+        match = self.numpy_regex.search(tree.data)
+
+        if match:
+            f = getattr(np, match.group(1), None)
+
+            if f:
+                return op(f)(self, *new_children)
+            else:
+                raise Exception(f"Numpy function {match.group(1)} does not exist")
+        else:
+            return super(CalculateTree, self)._call_userfunc(tree, new_children)
 
     def make_variable(self, name):
         return Var(name)
