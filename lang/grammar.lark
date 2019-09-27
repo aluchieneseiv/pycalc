@@ -30,6 +30,7 @@
     | oop_mul ".*" oop_exp      -> emul
     | oop_mul "./" oop_exp      -> ediv
     | oop_mul "\\" oop_exp      -> solve
+    | oop_mul "%" oop_exp       -> modulo
 
 ?oop_exp: value "^" oop_exp     -> pow
     | value ".^" oop_exp        -> epow
@@ -43,16 +44,16 @@
 ?variable: NAME
 
 ?ref: variable                              -> var_ref
-    | variable "[" expr ["," expr] "]"      -> matrix_ref
+    | variable "[" expr ("," expr)* "]"     -> index_ref
 
 ?constant: scalar
     | array
     | matrix
 
-?scalar: /\d+\.?\d*([eE][-+]?\d+)?/            -> decimal
-    | /\d*\.?\d+([eE][-+]?\d+)?/               -> decimal
-    | /\d+\.?\d*([eE][-+]?\d+)?j/              -> decimalj
-    | /\d*\.?\d+([eE][-+]?\d+)?j/              -> decimalj
+?scalar: /\d+\.?\d*([eE][-+]?\d+)?/             -> decimal
+    | /\d*\.?\d+([eE][-+]?\d+)?/                -> decimal
+    | /\d+\.?\d*([eE][-+]?\d+)?j/               -> decimalj
+    | /\d*\.?\d+([eE][-+]?\d+)?j/               -> decimalj
 
 ?matrix: "[" matrix_row (";" matrix_row)+ "]"       -> form_matrix
 

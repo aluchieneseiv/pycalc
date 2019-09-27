@@ -1,16 +1,30 @@
 from lark import Lark, Transformer, v_args
+from lark.exceptions import VisitError, UnexpectedInput
 import math
 import numpy as np
 from inspect import isclass
 
 
-with open("parsing/grammar.lark", "r") as f:
+with open("lang/grammar.lark", "r") as f:
     grammar = f.read()
 
 class Ref:
     def __init__(self, set=None, get=None):
         self.set = set
         self.get = get
+
+    def index(self, args):
+        args = list(args)
+        i = args.pop(-1)
+        ref = self.get()
+        while args:
+            ref = ref[args.pop(0)]
+
+        def set(x):
+            ref[i] = x
+            return x
+
+        return Ref(set=set, get=lambda: ref[i])
 
 @v_args(inline=True)
 class CalculateTree(Transformer):
@@ -24,6 +38,7 @@ class CalculateTree(Transformer):
     mul = lambda _, x, y: np.dot(x, y)
     div = lambda _, x, y: x / y
     solve = lambda _, x, y: np.linalg.solve(x, y)
+    modulo = lambda _, x, y: x % y
 
     pow = lambda _, x, y: x ** y
 
@@ -59,7 +74,6 @@ class CalculateTree(Transformer):
         "valinterp": lambda f, a, b: a + (b - a) * f,
         "version": "0.0.1",
     })
-
 
     def decimal(self, x):
         try:
@@ -117,40 +131,43 @@ class CalculateTree(Transformer):
         def getter():
             if name in self.vars:
                 return self.vars[name]
-            else:
+            elif name in self.builtins:
                 return self.builtins[name]
+            else:
+                raise Exception(f"Variable {name} is not defined")
         
         return Ref(set=setter, get=getter)
 
-    def matrix_ref(self, name, N, M=None):
-        if M is None:
-            def setter(x):
-                self.vars[name][N] = x
+    def index_ref(self, name, *args):
+        ref = self.var_ref(name)
 
-                return self.vars[name]
+        return ref.index(args)
 
-            getter = lambda: self.vars[name][N]
+
+class State:
+    def __init__(self):
+        self.rules = Lark(grammar, parser='lalr')
+        self.reset()
+
+    def reset(self):
+        self.ctx = CalculateTree()
+
+    def parse(self, line):
+        tree = self.rules.parse(line)
+
+        return self.ctx.transform(tree)
+
+if __name__ == "__main__":
+    state = State()
+    while True:
+        s = input('> ')
+        try:
+            res = state.parse(s)
+        except VisitError as e:
+            print("Exception:")
+            print(e.orig_exc)
+        except UnexpectedInput as e:
+            print("Parsing error:")
+            print(e.get_context(s))
         else:
-            def setter(x):
-                self.vars[name][M][N] = x
-
-                return self.vars[name]
-            
-            getter = lambda: self.vars[name][M][N]
-
-        return Ref(set=setter, get=getter)
-
-
-calc_parser = Lark(grammar, parser='lalr', transformer=CalculateTree())
-calc = calc_parser.parse
-
-
-while True:
-    s = input('> ')
-    try:
-        res = calc(s)
-    except Exception as e:
-        print("Exception:")
-        print(e)
-    else:
-        print(res)
+            print(res)
