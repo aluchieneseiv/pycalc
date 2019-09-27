@@ -2,38 +2,38 @@
     | expr
 
 ?expr: oop_bool
-    | oop_bool "?" oop_add ":" oop_add -> ternary_op
+    | oop_bool "?" oop_add ":" oop_add -> where
 
 ?oop_bool : oop_cond
-    | oop_bool "&&" oop_cond      -> and_op
-    | oop_bool "||" oop_cond      -> or_op
-    | "!" oop_cond                -> not_op
+    | oop_bool "&&" oop_cond      -> logical_and
+    | oop_bool "||" oop_cond      -> logical_or
+    | "!" oop_cond                -> logical_not
 
 ?oop_cond: oop_add
     | ref "=" oop_add             -> set_var
     | oop_add "==" oop_add        -> equals
     | oop_add "!=" oop_add        -> differs
     | oop_add "<" oop_add         -> less
-    | oop_add "<=" oop_add        -> less_eq
+    | oop_add "<=" oop_add        -> less_equal
     | oop_add ">" oop_add         -> greater
-    | oop_add ">=" oop_add        -> greater_eq
+    | oop_add ">=" oop_add        -> greater_equal
 
 ?oop_add: oop_mul
-    | "-" oop_mul               -> neg
+    | "-" oop_mul               -> negative
     | "|" oop_mul "|"           -> abs
     | oop_add "+" oop_mul       -> add
-    | oop_add "-" oop_mul       -> sub
+    | oop_add "-" oop_mul       -> subtract
 
 ?oop_mul: oop_exp
-    | oop_mul "*" oop_exp       -> mul
-    | oop_mul "/" oop_exp       -> div
-    | oop_mul ".*" oop_exp      -> emul
-    | oop_mul "./" oop_exp      -> ediv
+    | oop_mul "*" oop_exp       -> dot
+    | oop_mul "/" oop_exp       -> divide
+    | oop_mul ".*" oop_exp      -> multiply
+    | oop_mul "./" oop_exp      -> divide
     | oop_mul "\\" oop_exp      -> solve
-    | oop_mul "%" oop_exp       -> modulo
+    | oop_mul "%" oop_exp       -> mod
 
 ?oop_exp: value "^" oop_exp     -> pow
-    | value ".^" oop_exp        -> epow
+    | value ".^" oop_exp        -> power
     | value
 
 ?value: "(" expr ")"

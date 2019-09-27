@@ -5,9 +5,6 @@ import numpy as np
 from inspect import isclass
 
 
-with open("lang/grammar.lark", "r") as f:
-    grammar = f.read()
-
 class Ref:
     def __init__(self, set=None, get=None):
         self.set = set
@@ -28,34 +25,12 @@ class Ref:
 
 @v_args(inline=True)
 class CalculateTree(Transformer):
-    add = lambda _, x, y: np.add(x, y)
-    sub = lambda _, x, y: np.subtract(x, y)
-
-    emul = lambda _, x, y: np.multiply(x, y)
-    ediv = lambda _, x, y: np.divide(x, y)
-    epow = lambda _, x, y: np.power(x, y)
-
-    mul = lambda _, x, y: np.dot(x, y)
-    div = lambda _, x, y: x / y
     solve = lambda _, x, y: np.linalg.solve(x, y)
-    modulo = lambda _, x, y: x % y
 
-    pow = lambda _, x, y: x ** y
-
-    neg = lambda _, x: np.negative(x)
-    abs = lambda _, x: np.abs(x)
-
-    ternary_op = lambda _, cond, yes, no: yes if cond else no
+    pow = lambda _, x, y: np.linalg.matrix_power(x, y) if x is np.ndarray else x ** y
 
     equals = lambda _, x, y: np.all(np.equal(x, y))
     differs = lambda _, x, y: not np.all(np.equal(x, y))
-    less = lambda _, x, y: x < y
-    less_eq = lambda _, x, y: x <= y
-    greater = lambda _, x, y: x > y
-    greater_eq = lambda _, x, y: x >= y
-    and_op = lambda _, x, y: x and y 
-    or_op = lambda _, x, y: x or y 
-    not_op = lambda _, x: not x
 
     builtins = {o: getattr(np, o) for o in np.__all__ if not isclass(getattr(np, o))}
 
@@ -72,8 +47,15 @@ class CalculateTree(Transformer):
 
         # misc
         "valinterp": lambda f, a, b: a + (b - a) * f,
-        "version": "0.0.1",
+        "__version__": "0.1",
     })
+
+    def _call_userfunc(self, tree, new_children=None):
+        f = getattr(np, tree.data, False)
+        if f:
+            return f(*new_children)
+
+        return super(CalculateTree, self)._call_userfunc(tree, new_children)
 
     def decimal(self, x):
         try:
@@ -146,7 +128,7 @@ class CalculateTree(Transformer):
 
 class State:
     def __init__(self):
-        self.rules = Lark(grammar, parser='lalr')
+        self.rules = Lark.open("lang/grammar.lark", parser='lalr')
         self.reset()
 
     def reset(self):
@@ -169,5 +151,7 @@ if __name__ == "__main__":
         except UnexpectedInput as e:
             print("Parsing error:")
             print(e.get_context(s))
+        except Exception as e:
+            print(e)
         else:
             print(res)
