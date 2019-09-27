@@ -14,11 +14,11 @@ class Context:
     def clear(self):
         self.dict.clear()
 
-    def spawn_child(self):
-        return NestedContext(self)
-
     def update(self, dict):
         self.dict.update(dict)
+
+    def with_parent(self, parent):
+        return NestedContext(parent, self.dict)
 
 class NestedContext(Context):
     def __init__(self, parent, dict = dict()):
@@ -55,37 +55,7 @@ class EmptyContext:
     def spawn_child(self, dict=dict()):
         return Context(dict)
 
-class Callable:
-    def call(self, ctx, args):
-        val = self.get(ctx)
-
-        if callable(val):
-            return val(*[arg.get(ctx) for arg in args])
-        else:
-            args = list(args)
-            i = args.pop(-1)
-            while args:
-                val = val[args.pop(0)]
-
-            return val[i]
-
-    def setcall(self, ctx, args, newval):
-        val = self.get(ctx)
-
-        if callable(val):
-            raise Exception("Cannot assign to function call")
-        else:
-            args = list(args)
-            i = args.pop(-1)
-            while args:
-                val = val[args.pop(0)]
-
-            val[i] = newval
-
-        #TODO: MOVE CALL/SETCALL TO OPERATIONS.PY AND HAVE SEPARATE CHECK FOR MATRICES
-
-
-class Const(Callable):
+class Const:
     def __init__(self, val):
         self.val = val
 
@@ -95,7 +65,7 @@ class Const(Callable):
     def set(self, ctx, val):
         raise Exception("Cannot assign value to constant")
 
-class Var(Callable):
+class Var:
     def __init__(self, name):
         self.name = name
 
@@ -110,7 +80,7 @@ class Var(Callable):
 
         return ctx.get(self.name)
 
-class Expr(Callable):
+class Expr:
     def __new__(cls, func, setter=None, ctx=EmptyContext):
         if not setter:
             try:

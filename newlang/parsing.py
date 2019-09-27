@@ -60,7 +60,7 @@ class State:
 
     def __init__(self):
         self.rules = Lark(grammar, parser='lalr', transformer=CalculateTree())
-        self.ctx = self.GlobalCtx.spawn_child()
+        self.ctx = Context().with_parent(self.GlobalCtx)
 
     def clear(self):
         self.ctx.clear()
