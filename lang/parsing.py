@@ -8,23 +8,7 @@ from inspect import isclass
 with open("lang/grammar.lark", "r") as f:
     grammar = f.read()
 
-class Ref:
-    def __init__(self, set=None, get=None):
-        self.set = set
-        self.get = get
 
-    def index(self, args):
-        args = list(args)
-        i = args.pop(-1)
-        ref = self.get()
-        while args:
-            ref = ref[args.pop(0)]
-
-        def set(x):
-            ref[i] = x
-            return x
-
-        return Ref(set=set, get=lambda: ref[i])
 
 @v_args(inline=True)
 class CalculateTree(Transformer):
