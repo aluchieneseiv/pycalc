@@ -1,4 +1,4 @@
-from parsetypes import *
+from .parsetypes import *
 import numpy as np
 
 # HELPERS

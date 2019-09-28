@@ -3,13 +3,13 @@ from inspect import isclass
 import numpy as np
 from lark import Lark, Transformer, v_args
 from lark.exceptions import UnexpectedInput, VisitError
-from operations import op
-from parsetypes import *
+from .operations import op
+from .parsetypes import *
 from importlib import import_module
 
 @v_args(inline=True)
 class CalculateTree(Transformer):
-    from operations import op_plus, op_div, op_pow, op_assign, op_equals, \
+    from .operations import op_plus, op_div, op_pow, op_assign, op_equals, \
         op_differs, op_evaluate, op_evaluate_get
     
     numpy_regex = re.compile(r"np_(\w[\w\d]*)")
@@ -68,7 +68,6 @@ class CalculateTree(Transformer):
     def set_ctx(self, ctx):
         self.ctx = ctx
 
-
 class State:
     global_ctx = Context({o: getattr(np, o) for o in np.__all__ if not isclass(getattr(np, o))})
     global_ctx.update({f"linalg_{o}" : getattr(np.linalg, o) for o in dir(np.linalg) if not isclass(getattr(np.linalg, o))})
@@ -108,40 +107,3 @@ class State:
             return None, e.get_context(line)
         except Exception as e:
             return None, e
-
-if __name__ == "__main__":
-    state = State()
-    while True:
-        s = input('> ')
-
-        if s.startswith('/'):
-            if s == '/exit':
-                break
-            elif s == '/vars':
-                for k, v in state.ctx.dict.items():
-                    print(f'{k} =')
-                    print(v)
-                    print()
-            elif s.startswith('/clear'):
-                args = s.split(' ')
-                args.pop(0)
-
-                if args:
-                    for name in args:
-                        if name in state.ctx.dict:
-                            del state.ctx.dict[name]
-
-                    print(f'Cleared vars: {", ".join(args)}')
-                else:
-                    state.ctx.clear()
-                    print("Cleared all vars")
-            else:
-                print(f"Unknown command: {s}")
-        else:
-            val, err = state.parse(s)
-
-            if err:
-                print("Error:")
-                print(err)
-            else:
-                print(val)
