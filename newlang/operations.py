@@ -4,9 +4,9 @@ import numpy as np
 # HELPERS
 
 def op(func):
-    return lambda self, *args: Expr(lambda ctx: func(*[arg.get(ctx) for arg in args]))
+    return lambda self, *args: Expr.compose(func, self.ctx, args)
 
-def call_get(ctx, var, args):
+def call_get(ctx, var, *args):
     val = var.get(ctx)
 
     if np.ndim(val) > 0:
@@ -22,11 +22,11 @@ def call_get(ctx, var, args):
     else:
         raise Exception(f"Object of type {type(val).__name__} cannot be called")
 
-def call_set(ctx, var, args, newval):
+def call_set(ctx, newval, var, *args):
+    args = list(args)
     val = var.get(ctx)
 
     if np.ndim(val) > 0:
-        args = list(args)
         i = args.pop(-1).get(ctx)
         while args:
             val = val[args.pop(0).get(ctx)]
@@ -40,50 +40,33 @@ def call_set(ctx, var, args, newval):
         raise Exception(f"Object of type {type(val).__name__} cannot be called")
 
 # OTHERS
-def op_evaluate(self, var, *args):
-    return Expr(lambda ctx: call_get(ctx, var, args), lambda ctx, val: call_set(ctx, var, args, val))
+def op_evaluate_get(self, *args):
+    return Expr.compose_raw(self.ctx, args, call_get)
+
+def op_evaluate(self, *args):
+    return Expr.compose_raw(self.ctx, args, call_get, call_set)
 
 # UNARY
 op_plus = op(lambda x: +x)
-op_neg = op(lambda x: np.negative(x))
-op_abs = op(lambda x: np.abs(x))
-op_not = op(lambda x: not x)
 
 # BINARY
 def op_assign(self, lhs, rhs):
-    def setter(ctx):
+    def func(ctx):
         lhs.set(ctx, rhs.get(ctx))
         return lhs.get(ctx)
 
-    return Expr(setter)
+    return Expr(func, ctx=self.ctx, optimize=rhs.optimize)
 
-op_add = op(lambda x, y: np.add(x, y))
-op_sub = op(lambda x, y: np.subtract(x, y))
-op_mul = op(lambda x, y: np.dot(x, y))
-op_emul = op(lambda x, y: np.multiply(x, y))
 op_div = op(lambda x, y: x / y)
-op_ediv = op(lambda x, y: np.divide(lhs, rhs))
-op_solve = op(lambda x, y: np.solve(x, y))
-op_modulo = op(lambda x, y: x % y)
+op_solve = op(lambda x, y: np.linalg.solve(x, y))
 
 @op
 def op_pow(x, y):
     if isinstance(x, np.matrix):
         return np.linalg.matrix_power(x, y)
 
-    return lhs ** rhs
+    return x ** y
 
 op_equals = op(lambda x, y: np.all(np.equal(x, y)))
 op_differs = op(lambda x, y: not np.all(np.equal(x, y)))
-op_less = op(lambda x, y: np.less(x, y))
-op_less_eq = op(lambda x, y: np.less_equal(x, y))
-op_greater = op(lambda x, y: np.greater(x, y))
-op_greater_eq = op(lambda x, y: np.greater_equal(x, y))
-
-op_and = op(lambda x, y: x and y)
-op_or = op(lambda x, y: x or y)
-
-# TERNARY
-def op_ternary(self, cond, true, false):
-    return Expr(lambda ctx: true.get(ctx) if cond.get(ctx) else false.get(ctx))
     

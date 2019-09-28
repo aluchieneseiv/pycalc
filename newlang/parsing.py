@@ -1,20 +1,16 @@
 import re
 from inspect import isclass
-
 import numpy as np
 from lark import Lark, Transformer, v_args
 from lark.exceptions import UnexpectedInput, VisitError
-
 from operations import op
-from parsetypes import Const, Context, EmptyContext, Expr, Var
-
+from parsetypes import *
+from importlib import import_module
 
 @v_args(inline=True)
 class CalculateTree(Transformer):
-    from operations import op_plus, op_neg, op_not, op_add, op_sub, \
-        op_mul, op_div, op_modulo, op_pow, op_greater, op_greater_eq, \
-        op_less, op_less_eq, op_assign, op_equals, op_differs, op_and, \
-        op_or, op_ternary, op_evaluate
+    from operations import op_plus, op_div, op_pow, op_assign, op_equals, \
+        op_differs, op_evaluate, op_evaluate_get
     
     numpy_regex = re.compile(r"np_(\w[\w\d]*)")
 
@@ -34,6 +30,14 @@ class CalculateTree(Transformer):
     def make_variable(self, name):
         return Var(name)
 
+    def var_eval(self, var):
+        if isinstance(var, Expr) and var.optimize:
+            return Const(var.get(self.ctx))
+        elif isinstance(var, Var) and self.ctx.contains(var.name):
+            return Const(var.get(self.ctx))
+        else:
+            return var
+
     def form_decimal(self, x):
         try:
             return Const(int(x))
@@ -44,61 +48,100 @@ class CalculateTree(Transformer):
         return Const(complex(x))
 
     def form_matrix_row(self, *args):
-        return Expr(lambda ctx: [arg.get(ctx) for arg in args])
+        return Expr(lambda ctx: [arg.get(ctx) for arg in args], ctx=self.ctx)
 
     def form_matrix(self, *args):
-        return Expr(lambda ctx: np.matrix([arg.get(ctx) for arg in args]))
+        return Expr(lambda ctx: np.matrix([arg.get(ctx) for arg in args]), ctx=self.ctx)
 
     def form_array(self, expr):
-        return Expr(lambda ctx: np.array(expr.get(ctx)))
+        return Expr(lambda ctx: np.array(expr.get(ctx)), ctx=self.ctx)
+
+    def form_function(self, *args):
+        args = list(args)
+        expr = args.pop(-1)
+
+        return Function(expr, args)
+
+    def form_string(self, arg):
+        return Const(str(arg))
+
+    def set_ctx(self, ctx):
+        self.ctx = ctx
 
 
 class State:
-    GlobalCtx = Context({o: getattr(np, o) for o in np.__all__ if not isclass(getattr(np, o))})
-    GlobalCtx.update({
+    global_ctx = Context({o: getattr(np, o) for o in np.__all__ if not isclass(getattr(np, o))})
+    global_ctx.update({f"linalg_{o}" : getattr(np.linalg, o) for o in dir(np.linalg) if not isclass(getattr(np.linalg, o))})
+    global_ctx.update({f"emath_{o}" : getattr(np.emath, o) for o in dir(np.emath) if not isclass(getattr(np.emath, o))})
+    global_ctx.update({
         # numpy matrix
-        "rank": np.linalg.matrix_rank,
-        "det": np.linalg.det,
-        "norm": np.linalg.norm,
-        "inv": np.linalg.inv,
         "zeros": lambda *shape: np.zeros(shape),
         "ones": lambda *shape: np.ones(shape),
+
+        # numpy complex
         'j': np.complex(0, 1),
         'complex': np.complex,
 
         # misc
-        "valinterp": lambda f, a, b: a + (b - a) * f,
-        "version": "0.0.1",
+        "version": "0.5.0",
     })
 
     def __init__(self):
         self.rules = Lark.open("newlang/grammar.lark", parser='lalr')
         self.transformer = CalculateTree()
-        self.ctx = Context().with_parent(self.GlobalCtx)
+        self.ctx = Context().with_parent(self.global_ctx)
 
     def clear(self):
         self.ctx.clear()
 
     def parse(self, line):
+        self.transformer.set_ctx(self.ctx)
+        
         tree = self.rules.parse(line)
         tree = self.transformer.transform(tree)
 
-        return tree.get(self.ctx)
+        try:
+            return tree.get(self.ctx), None
+        except VisitError as e:
+            return None, e.orig_exc
+        except UnexpectedInput as e:
+            return None, e.get_context(line)
+        except Exception as e:
+            return None, e
 
 if __name__ == "__main__":
     state = State()
     while True:
         s = input('> ')
-        try:
-            res = state.parse(s)
-        except VisitError as e:
-            print("Exception:")
-            print(e.orig_exc)
-        except UnexpectedInput as e:
-            print("Parsing error:")
-            print(e.get_context(s))
-        except Exception as e:
-            print("Exception:")
-            print(e)
+
+        if s.startswith('/'):
+            if s == '/exit':
+                break
+            elif s == '/vars':
+                for k, v in state.ctx.dict.items():
+                    print(f'{k} =')
+                    print(v)
+                    print()
+            elif s.startswith('/clear'):
+                args = s.split(' ')
+                args.pop(0)
+
+                if args:
+                    for name in args:
+                        if name in state.ctx.dict:
+                            del state.ctx.dict[name]
+
+                    print(f'Cleared vars: {", ".join(args)}')
+                else:
+                    state.ctx.clear()
+                    print("Cleared all vars")
+            else:
+                print(f"Unknown command: {s}")
         else:
-            print(res)
+            val, err = state.parse(s)
+
+            if err:
+                print("Error:")
+                print(err)
+            else:
+                print(val)

@@ -56,6 +56,8 @@ class EmptyContext:
         return Context(dict)
 
 class Const:
+    optimize = True
+
     def __init__(self, val):
         self.val = val
 
@@ -66,6 +68,7 @@ class Const:
         raise Exception("Cannot assign value to constant")
 
 class Var:
+    optimize = False
     def __init__(self, name):
         self.name = name
 
@@ -81,18 +84,19 @@ class Var:
         return ctx.get(self.name)
 
 class Expr:
-    def __new__(cls, func, setter=None, ctx=EmptyContext):
-        if not setter:
+    def __new__(cls, getter, setter=None, ctx=EmptyContext, optimize=True):
+        if optimize:
             try:
-                return Const(func(ctx))
+                return Const(getter(ctx))
             except:
                 pass
 
         return object.__new__(Expr)
 
-    def __init__(self, func, setter=None):
-        self.getter = func
+    def __init__(self, getter, setter=None, ctx=EmptyContext, optimize=True):
+        self.getter = getter
         self.setter = setter
+        self.optimize = optimize
     
     def set(self, ctx, val):
         if not self.setter:
@@ -105,3 +109,47 @@ class Expr:
             raise Exception("Cannot evaluate")
 
         return self.getter(ctx)
+
+    @classmethod
+    def compose(self, func, ctx, args):
+        def getter(ctx):
+            return func(*[arg.get(ctx) for arg in args])
+
+        opt = all([arg.optimize for arg in args])
+        
+        return Expr(getter, ctx=ctx, optimize=opt)
+
+    @classmethod
+    def compose_raw(self, ctx, args, getter, setter=None):
+        def get(ctx):
+            return getter(ctx, *args)
+        
+        def set(ctx, val):
+            return setter(ctx, val, *args)
+        
+        opt = all([arg.optimize for arg in args])
+
+        if setter:
+            return Expr(get, set, ctx=ctx, optimize=opt)
+        else:
+            return Expr(get, None, ctx=ctx, optimize=opt)
+
+class Function:
+    optimize = True
+    def __init__(self, expr, args):
+        self.expr = expr
+        self.args = args
+
+    def get(self, ctx):
+        def func(*args):
+            child_ctx = Context().with_parent(ctx)
+
+            if len(args) != len(self.args):
+                raise Exception("Function called with different number of arguments")
+
+            for i, name in enumerate(self.args):
+                child_ctx.set(name, args[i])
+                
+            return self.expr.get(child_ctx)
+
+        return func
