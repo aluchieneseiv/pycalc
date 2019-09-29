@@ -39,9 +39,11 @@
     | "|" expr "|"                      -> np_abs
     | value "(" expr? ("," expr)* ")"   -> op_evaluate_get
     | constant
-    | lvalue                              -> var_eval
+    | lvalue                            -> var_eval
     | "&" lvalue
     | function_def
+    | value "'"                         -> np_transpose
+
 
 ?lvalue: variable                           -> make_variable
     | lvalue "(" expr? ("," expr)* ")"      -> op_evaluate

@@ -73,9 +73,16 @@ class State:
     global_ctx.update({f"linalg_{o}" : getattr(np.linalg, o) for o in dir(np.linalg) if not isclass(getattr(np.linalg, o))})
     global_ctx.update({f"emath_{o}" : getattr(np.emath, o) for o in dir(np.emath) if not isclass(getattr(np.emath, o))})
     global_ctx.update({
+        'true': True,
+        'false': False,
+        'null': None,
+ 
         # numpy matrix
         "zeros": lambda *shape: np.zeros(shape),
         "ones": lambda *shape: np.ones(shape),
+
+        "vectorize": np.vectorize,
+        "map": lambda f, arr: np.vectorize(f)(arr),
 
         # numpy complex
         'j': np.complex(0, 1),
