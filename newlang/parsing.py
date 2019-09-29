@@ -80,6 +80,8 @@ class State:
         # numpy matrix
         "zeros": lambda *shape: np.zeros(shape),
         "ones": lambda *shape: np.ones(shape),
+        "rank": np.linalg.matrix_rank,
+        "det": np.linalg.det,
 
         "vectorize": np.vectorize,
         "map": lambda f, arr: np.vectorize(f)(arr),
