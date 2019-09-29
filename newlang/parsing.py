@@ -10,7 +10,7 @@ from importlib import import_module
 @v_args(inline=True)
 class CalculateTree(Transformer):
     from .operations import op_plus, op_div, op_pow, op_assign, op_equals, \
-        op_differs, op_evaluate, op_evaluate_get
+        op_differs, op_evaluate, op_evaluate_get, op_attr, op_attr_get
     
     numpy_regex = re.compile(r"np_(\w[\w\d]*)")
 
@@ -75,15 +75,13 @@ class State:
     global_ctx.update({f"linalg_{o}" : getattr(np.linalg, o) for o in dir(np.linalg) if not isclass(getattr(np.linalg, o))})
     global_ctx.update({f"emath_{o}" : getattr(np.emath, o) for o in dir(np.emath) if not isclass(getattr(np.emath, o))})
     global_ctx.update({
-        'true': True,
-        'false': False,
-        'null': None,
  
         # numpy matrix
-        "zeros": lambda *shape: np.zeros(shape),
-        "ones": lambda *shape: np.ones(shape),
+        "zeros": lambda *args: np.zeros(args),
+        "ones": lambda *args: np.ones(args),
         "rank": np.linalg.matrix_rank,
         "det": np.linalg.det,
+        "reshape": lambda mat, *args: np.reshape(mat, args),
 
         "vectorize": np.vectorize,
         "map": lambda f, arr: np.vectorize(f)(arr),
@@ -93,6 +91,9 @@ class State:
         'complex': np.complex,
 
         # misc
+        'true': True,
+        'false': False,
+        'null': None,
         "version": "0.5.0",
     })
     rules = Lark.open("newlang/grammar.lark", parser='lalr')
