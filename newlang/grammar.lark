@@ -1,0 +1,78 @@
+?start: expr
+
+?expr: oop_bool
+    | oop_bool "?" oop_add ":" oop_add -> np_where
+
+?oop_bool : oop_cond
+    | oop_bool "&&" oop_cond    -> np_logical_and
+    | oop_bool "||" oop_cond    -> np_logical_or
+    | "!" oop_cond              -> np_logical_not
+
+?oop_cond: oop_add
+    | lvalue "=" oop_cond       -> op_assign
+    | oop_add "==" oop_add      -> op_equals
+    | oop_add "!=" oop_add      -> op_differs
+    | oop_add "<" oop_add       -> np_less
+    | oop_add "<=" oop_add      -> np_less_equal
+    | oop_add ">" oop_add       -> np_greater
+    | oop_add ">=" oop_add      -> np_greater_equal
+
+?oop_add: oop_mul
+    | "+" oop_mul               -> op_plus
+    | "-" oop_mul               -> np_negative
+    | oop_add "+" oop_mul       -> np_add
+    | oop_add "-" oop_mul       -> np_subtract
+
+?oop_mul: oop_exp
+    | oop_mul "*" oop_exp       -> np_dot
+    | oop_mul ".*" oop_exp      -> np_multiply
+    | oop_mul "/" oop_exp       -> op_div
+    | oop_mul "./" oop_exp      -> np_divide
+    | oop_mul "\\" oop_exp      -> op_solve
+    | oop_mul "%" oop_exp       -> np_mod
+    | oop_mul ".%" oop_exp      -> np_mod // alias
+
+?oop_exp: value
+    | value "^" oop_exp         -> op_pow
+
+?value: "(" expr ")"
+    | "|" expr "|"                      -> np_abs
+    | value "(" expr? ("," expr)* ")"   -> op_evaluate_get
+    | constant
+    | lvalue                              -> var_eval
+    | "&" lvalue
+    | function_def
+
+?lvalue: variable                           -> make_variable
+    | lvalue "(" expr? ("," expr)* ")"      -> op_evaluate
+
+?function_def: "@(" variable? ("," variable)* ")" expr  -> form_function
+    | "@" variable expr                                 -> form_function
+
+?variable: NAME
+
+?constant: scalar
+    | matrix
+    | array
+    | string
+
+?scalar: /\d+\.?\d*([eE][-+]?\d+)?/             -> form_decimal
+    | /\d*\.?\d+([eE][-+]?\d+)?/                -> form_decimal
+    | /\d+\.?\d*([eE][-+]?\d+)?j/               -> form_decimalj
+    | /\d*\.?\d+([eE][-+]?\d+)?j/               -> form_decimalj
+
+?matrix: "[" matrix_row (";" matrix_row)+ "]"       -> form_matrix
+
+?matrix_row: expr ("," expr)*                       -> form_matrix_row
+
+?array: "[" matrix_row "]"                          -> form_array
+
+?string: ESCAPED_STRING                             -> form_string
+
+%import common.CNAME -> NAME
+%import common.WS_INLINE
+%import common.ESCAPED_STRING
+%ignore WS_INLINE
+
+COMMENT: "#" /[^\n]/*
+%ignore COMMENT
