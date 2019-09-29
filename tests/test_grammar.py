@@ -2,10 +2,15 @@ from unittest import TestCase, main
 from newlang import State
 import numpy as np
 
+
 class TestNumbers(TestCase):
 
     def test_assign(self):
-        res, err = State().parse('a=1')
+        state = State()
+        res, err = state.parse('a=1')
+        self.assertFalse(err)
+        self.assertEqual(res, 1)
+        res, err = state.parse('a')
         self.assertFalse(err)
         self.assertEqual(res, 1)
 

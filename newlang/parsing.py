@@ -14,6 +14,8 @@ class CalculateTree(Transformer):
     
     numpy_regex = re.compile(r"np_(\w[\w\d]*)")
 
+    str = str
+
     def _call_userfunc(self, tree, new_children=None):
         match = self.numpy_regex.search(tree.data)
 

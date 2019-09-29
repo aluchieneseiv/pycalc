@@ -52,7 +52,7 @@
 ?function_def: "@(" variable? ("," variable)* ")" expr  -> form_function
     | "@" variable expr                                 -> form_function
 
-?variable: NAME
+?variable: NAME                             -> str
 
 ?constant: scalar
     | matrix
