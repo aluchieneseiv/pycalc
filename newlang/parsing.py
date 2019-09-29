@@ -84,14 +84,16 @@ class State:
         # misc
         "version": "0.5.0",
     })
+    rules = Lark.open("newlang/grammar.lark", parser='lalr')
+    transformer = CalculateTree()
 
-    def __init__(self):
-        self.rules = Lark.open("newlang/grammar.lark", parser='lalr')
-        self.transformer = CalculateTree()
-        self.ctx = Context().with_parent(self.global_ctx)
+    def __init__(self, ctx=None, global_ctx=None):
+        ctx = ctx or Context()
 
-    def clear(self):
-        self.ctx.clear()
+        if not global_ctx:
+            self.ctx = ctx.with_parent(self.global_ctx)
+        else:
+            self.ctx = ctx.with_parent(global_ctx)
 
     def parse(self, line):
         self.transformer.set_ctx(self.ctx)

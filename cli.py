@@ -9,7 +9,7 @@ while True:
         if s == '/exit':
             break
         elif s == '/vars':
-            for k, v in state.ctx.dict.items():
+            for k, v in state.ctx.var_map.items():
                 print(f'{k} =')
                 print(v)
                 print()
@@ -19,8 +19,8 @@ while True:
 
             if args:
                 for name in args:
-                    if name in state.ctx.dict:
-                        del state.ctx.dict[name]
+                    if name in state.ctx.var_map:
+                        del state.ctx.var_map[name]
 
                 print(f'Cleared vars: {", ".join(args)}')
             else:

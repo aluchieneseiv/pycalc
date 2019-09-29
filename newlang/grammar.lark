@@ -26,7 +26,7 @@
 ?oop_mul: oop_exp
     | oop_mul "*" oop_exp       -> np_dot
     | oop_mul ".*" oop_exp      -> np_multiply
-    | oop_mul "/" oop_exp       -> op_divide
+    | oop_mul "/" oop_exp       -> op_div
     | oop_mul "./" oop_exp      -> np_divide
     | oop_mul "\\" oop_exp      -> op_solve
     | oop_mul "%" oop_exp       -> np_mod

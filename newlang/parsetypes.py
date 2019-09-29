@@ -1,38 +1,38 @@
 class Context:
-    def __init__(self, dict=dict()):
-        self.dict = dict
+    def __init__(self, var_map=None):
+        self.var_map = var_map or dict()
 
     def get(self, name):
-        return self.dict[name]
+        return self.var_map[name]
 
     def contains(self, name):
-        return name in self.dict
+        return name in self.var_map
 
     def set(self, name, val):
-        self.dict[name] = val
+        self.var_map[name] = val
 
     def clear(self):
-        self.dict.clear()
+        self.var_map.clear()
 
-    def update(self, dict):
-        self.dict.update(dict)
+    def update(self, var_map):
+        self.var_map.update(var_map)
 
     def with_parent(self, parent):
-        return NestedContext(parent, self.dict)
+        return NestedContext(parent, self.var_map)
 
 class NestedContext(Context):
-    def __init__(self, parent, dict = dict()):
+    def __init__(self, parent, var_map=None):
         self.parent = parent
-        self.dict = dict
+        self.var_map = var_map or dict()
     
     def get(self, name):
-        if name in self.dict:
-            return self.dict[name]
+        if name in self.var_map:
+            return self.var_map[name]
 
         return self.parent.get(name)
 
     def contains(self, name):
-        return name in self.dict or self.parent.contains(name)
+        return name in self.var_map or self.parent.contains(name)
 
 class EmptyContext:
     @classmethod
@@ -52,8 +52,8 @@ class EmptyContext:
         pass
     
     @classmethod
-    def spawn_child(self, dict=dict()):
-        return Context(dict)
+    def with_parent(self, parent):
+        return parent
 
 class Const:
     optimize = True
