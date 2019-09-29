@@ -48,13 +48,13 @@ class CalculateTree(Transformer):
         return Const(complex(x))
 
     def form_matrix_row(self, *args):
-        return Expr(lambda ctx: [arg.get(ctx) for arg in args], ctx=self.ctx)
+        return Expr.compose(lambda *args: list(args), self.ctx, args)
 
     def form_matrix(self, *args):
-        return Expr(lambda ctx: np.matrix([arg.get(ctx) for arg in args]), ctx=self.ctx)
+        return Expr.compose(lambda *args: np.matrix(list(args)), self.ctx, args)
 
     def form_array(self, expr):
-        return Expr(lambda ctx: np.array(expr.get(ctx)), ctx=self.ctx)
+        return Expr.compose(lambda expr: np.array(list(expr)), self.ctx, (expr,))
 
     def form_function(self, *args):
         args = list(args)
@@ -102,7 +102,9 @@ class State:
             tree = self.rules.parse(line)
             tree = self.transformer.transform(tree)
 
-            return tree.get(self.ctx), None
+            val = tree.get(self.ctx)
+
+            return val, None
         except VisitError as e:
             return None, e.orig_exc
         except UnexpectedInput as e:

@@ -8,34 +8,28 @@ def op(func):
 
 def call_get(ctx, var, *args):
     val = var.get(ctx)
+    args = tuple(arg.get(ctx) for arg in args)
 
     if np.ndim(val) > 0:
-        args = list(args)
-        i = args.pop(-1).get(ctx)
+        return val.item(args)
 
-        while args:
-            val = val[args.pop(0).get(ctx)]
-
-        return val[i]
     elif callable(val):
-        return val(*[arg.get(ctx) for arg in args])
+        return val(*args)
+
     else:
         raise Exception(f"Object of type {type(val).__name__} cannot be called")
 
 def call_set(ctx, newval, var, *args):
-    args = list(args)
     val = var.get(ctx)
+    args = tuple(arg.get(ctx) for arg in args)
 
     if np.ndim(val) > 0:
-        i = args.pop(-1).get(ctx)
-        while args:
-            val = val[args.pop(0).get(ctx)]
-
-        val[i] = newval
-
+        val.itemset(args, newval)
         return newval
+
     elif callable(val):
         raise Exception("Cannot assign to function call")
+    
     else:
         raise Exception(f"Object of type {type(val).__name__} cannot be called")
 
