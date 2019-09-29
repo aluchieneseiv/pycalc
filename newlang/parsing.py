@@ -97,11 +97,11 @@ class State:
 
     def parse(self, line):
         self.transformer.set_ctx(self.ctx)
-        
-        tree = self.rules.parse(line)
-        tree = self.transformer.transform(tree)
 
         try:
+            tree = self.rules.parse(line)
+            tree = self.transformer.transform(tree)
+
             return tree.get(self.ctx), None
         except VisitError as e:
             return None, e.orig_exc
