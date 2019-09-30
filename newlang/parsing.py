@@ -72,13 +72,9 @@ class CalculateTree(Transformer):
 
 class State:
     global_ctx = Context({o: getattr(np, o) for o in np.__all__ if not isclass(getattr(np, o))})
-    global_ctx.update({f"linalg_{o}" : getattr(np.linalg, o) for o in dir(np.linalg) if not isclass(getattr(np.linalg, o))})
-    global_ctx.update({f"emath_{o}" : getattr(np.emath, o) for o in dir(np.emath) if not isclass(getattr(np.emath, o))})
     global_ctx.update({
  
         # numpy matrix
-        "zeros": lambda *args: np.zeros(args),
-        "ones": lambda *args: np.ones(args),
         "rank": np.linalg.matrix_rank,
         "det": np.linalg.det,
         "reshape": lambda mat, *args: np.reshape(mat, args),
@@ -91,6 +87,7 @@ class State:
         'complex': np.complex,
 
         # misc
+        'np': np,
         'true': True,
         'false': False,
         'null': None,
