@@ -62,7 +62,7 @@ class CalculateTree(Transformer):
         args = list(args)
         expr = args.pop(-1)
 
-        return Function(expr, args)
+        return Const(Function(self.ctx, expr, args))
 
     def form_string(self, arg):
         return Const(str(arg))

@@ -136,20 +136,18 @@ class Expr:
 
 class Function:
     optimize = True
-    def __init__(self, expr, args):
+    def __init__(self, ctx, expr, args):
+        self.ctx = ctx
         self.expr = expr
         self.args = args
 
-    def get(self, ctx):
-        def func(*args):
-            child_ctx = Context().with_parent(ctx)
+    def __call__(self, *args):
+        child_ctx = Context().with_parent(self.ctx)
 
-            if len(args) != len(self.args):
-                raise Exception("Function called with different number of arguments")
+        if len(args) != len(self.args):
+            raise Exception("Function called with different number of arguments")
 
-            for i, name in enumerate(self.args):
-                child_ctx.set(name, args[i])
-                
-            return self.expr.get(child_ctx)
-
-        return func
+        for i, name in enumerate(self.args):
+            child_ctx.set(name, args[i])
+            
+        return self.expr.get(child_ctx)
