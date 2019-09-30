@@ -87,7 +87,7 @@ class State:
         'complex': np.complex,
 
         # misc
-        'np': np,
+        'numpy': np,
         'true': True,
         'false': False,
         'null': None,
