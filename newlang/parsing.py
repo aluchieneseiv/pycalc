@@ -62,6 +62,14 @@ class CalculateTree(Transformer):
     def set_ctx(self, ctx):
         self.ctx = ctx
 
+    def no_output(self, expr):
+        def wrap(ctx):
+            expr.get(ctx)
+
+            return NoOutput
+
+        return Expr(wrap)
+
 class State:
     global_ctx = Context({o: getattr(np, o) for o in np.__all__ if not isclass(getattr(np, o))})
     global_ctx.update({

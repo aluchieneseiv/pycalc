@@ -1,4 +1,7 @@
-?start: expr
+?start: line
+
+?line: expr "\n"?
+    | expr ";" "\n"?            -> no_output
 
 ?expr: oop_bool
     | oop_bool "?" oop_add ":" oop_add -> np_where
@@ -44,7 +47,6 @@
     | lvalue
     | function_def
     | value "'"                         -> np_transpose
-
 
 ?lvalue: variable                           -> make_variable
     | lvalue "(" expr? ("," expr)* ")"      -> op_evaluate

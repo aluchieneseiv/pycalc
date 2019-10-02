@@ -70,10 +70,10 @@ def op_evaluate(self, *args):
     return Expr.compose_raw(self.ctx, args, call_get, call_set)
 
 def op_attr_get(self, var, name):
-    return Expr(getter=lambda ctx: attr_get(ctx, var, name), setter=None, ctx=self.ctx, optimize=var.optimize)
+    return Expr(getter=lambda ctx: attr_get(ctx, var, name), setter=None)
 
 def op_attr(self, var, name):
-    return Expr(getter=lambda ctx: attr_get(ctx, var, name), setter=lambda ctx, val: attr_set(ctx, val, var, name), ctx=self.ctx, optimize=var.optimize)
+    return Expr(getter=lambda ctx: attr_get(ctx, var, name), setter=lambda ctx, val: attr_set(ctx, val, var, name))
 
 # UNARY
 op_plus = op(lambda x: +x)
@@ -84,7 +84,7 @@ def op_assign(self, lhs, rhs):
         lhs.set(ctx, rhs.get(ctx))
         return lhs.get(ctx)
 
-    return Expr(func, ctx=self.ctx, optimize=rhs.optimize)
+    return Expr(func)
 
 op_div = op(lambda x, y: x / y)
 op_solve = op(lambda x, y: np.linalg.solve(x, y))

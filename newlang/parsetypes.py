@@ -56,8 +56,6 @@ class EmptyContext:
         return parent
 
 class Const:
-    optimize = True
-
     def __init__(self, val):
         self.val = val
 
@@ -68,7 +66,6 @@ class Const:
         raise Exception("Cannot assign value to constant")
 
 class Var:
-    optimize = False
     def __init__(self, name):
         self.name = name
 
@@ -84,19 +81,9 @@ class Var:
         return ctx.get(self.name)
 
 class Expr:
-    def __new__(cls, getter, setter=None, ctx=EmptyContext, optimize=True):
-        if optimize:
-            try:
-                return Const(getter(ctx))
-            except:
-                pass
-
-        return object.__new__(Expr)
-
-    def __init__(self, getter, setter=None, ctx=EmptyContext, optimize=True):
+    def __init__(self, getter, setter=None):
         self.getter = getter
         self.setter = setter
-        self.optimize = optimize
     
     def set(self, ctx, val):
         if not self.setter:
@@ -112,12 +99,7 @@ class Expr:
 
     @classmethod
     def compose(self, func, ctx, args):
-        def getter(ctx):
-            return func(*[arg.get(ctx) for arg in args])
-
-        opt = all([arg.optimize for arg in args])
-        
-        return Expr(getter, ctx=ctx, optimize=opt)
+        return Expr(lambda ctx: func(*[arg.get(ctx) for arg in args]))
 
     @classmethod
     def compose_raw(self, ctx, args, getter, setter=None):
@@ -127,15 +109,12 @@ class Expr:
         def set(ctx, val):
             return setter(ctx, val, *args)
         
-        opt = all([arg.optimize for arg in args])
-
         if setter:
-            return Expr(get, set, ctx=ctx, optimize=opt)
+            return Expr(get, set)
         else:
-            return Expr(get, None, ctx=ctx, optimize=opt)
+            return Expr(get, None)
 
 class Function:
-    optimize = True
     def __init__(self, args, expr):
         self.expr = expr
         self.args = args
@@ -157,3 +136,8 @@ class Function:
     def set(self, ctx, val):
         raise Exception("Cannot assign to function")
 
+class NoOutput:
+    pass
+
+class Parameter:
+    pass

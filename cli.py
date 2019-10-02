@@ -1,4 +1,4 @@
-from newlang import State
+from newlang import State, NoOutput
 
 state = State()
 
@@ -34,5 +34,5 @@ while True:
         if err:
             print("Error:")
             print(err)
-        else:
+        elif val is not NoOutput:
             print(val)
