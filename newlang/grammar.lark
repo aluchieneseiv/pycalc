@@ -50,8 +50,8 @@
     | lvalue "(" expr? ("," expr)* ")"      -> op_evaluate
     | lvalue "." variable                   -> op_attr
 
-?function_def: "@(" variable? ("," variable)* ")" expr  -> form_function
-    | "@" variable expr                                 -> form_function
+?function_def: "(" variable? ("," variable)* ")" "=>" expr  -> form_function
+    | variable "=>" expr                                 -> form_function
 
 ?variable: NAME                             -> str
 
