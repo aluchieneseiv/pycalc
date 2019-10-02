@@ -32,14 +32,6 @@ class CalculateTree(Transformer):
     def make_variable(self, name):
         return Var(name)
 
-    def var_eval(self, var):
-        if isinstance(var, Expr) and var.optimize:
-            return Const(var.get(self.ctx))
-        elif isinstance(var, Var) and self.ctx.contains(var.name):
-            return Const(var.get(self.ctx))
-        else:
-            return var
-
     def form_decimal(self, x):
         try:
             return Const(int(x))
@@ -62,7 +54,7 @@ class CalculateTree(Transformer):
         args = list(args)
         expr = args.pop(-1)
 
-        return Const(Function(self.ctx, expr, args))
+        return Function(args, expr)
 
     def form_string(self, arg):
         return Const(str(arg))

@@ -41,8 +41,7 @@
     | value "(" expr? ("," expr)* ")"   -> op_evaluate_get
     | value "." variable                -> op_attr_get
     | constant
-    | lvalue                            -> var_eval
-    | "&" lvalue
+    | lvalue
     | function_def
     | value "'"                         -> np_transpose
 
