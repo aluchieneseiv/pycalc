@@ -17,6 +17,7 @@ Builder.load_file('./main.kv')
 
 state = State()
 lexer = PycalcLexer()
+lexer.state = state
 
 
 class ScrollableText(ScrollView):
