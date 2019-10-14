@@ -42,6 +42,9 @@ class ScrollableText(ScrollView):
     def code_interpret(self, codeinput):
         codeoutput = CodeOutput()
 
+        codeinput.bind(on_touch_down=lambda *_: partial(self.open_output, codeoutput=codeoutput)())
+        self.open_output(codeoutput)
+
         res, err = state.parse(codeinput.text)
 
         if err:
@@ -51,6 +54,24 @@ class ScrollableText(ScrollView):
             codeoutput.text = str(res)
 
         self.layout.add_widget(codeoutput)
+
+    def open_output(self, codeoutput):
+        for c in self.layout.children:
+            if isinstance(c, CodeOutput):
+                self._hide_widget(c, True)
+        
+        self._hide_widget(codeoutput, False)
+
+
+    def _hide_widget(self, wid, dohide=True):
+        if hasattr(wid, 'saved_attrs'):
+            if not dohide:
+                wid.height, wid.size_hint_y, wid.opacity, wid.disabled = wid.saved_attrs
+                del wid.saved_attrs
+        elif dohide:
+            wid.saved_attrs = wid.height, wid.size_hint_y, wid.opacity, wid.disabled
+            wid.height, wid.size_hint_y, wid.opacity, wid.disabled = 0, None, 0, True
+
 
 class AppView(BoxLayout):
     pass
