@@ -33,13 +33,39 @@ class ScrollableText(ScrollView):
     def add_new_codeline(self):
         codeinput = PycalcCodeInput(lexer=lexer)
 
-        codeinput.bind(on_text_validate=lambda _: self.add_new_codeline())
         codeinput.bind(on_text_validate=lambda _: partial(self.code_interpret, codeinput=codeinput)())
         codeinput.focus = True
+        codeinput.ind = len(self.layout.children)
         
         self.layout.add_widget(codeinput)
     
+    def reinterpret_line(self, codeinput):
+        res, err = state.parse(codeinput.text)
+
+        self.print_output(codeinput.out, res, err)
+
+    def print_output(self, co, res, err):
+            if err:
+                co.text = str(err)
+                co.color = (1, 0, 0, 1)
+            else:
+                co.text = str(res)
+                co.color = (1, 1, 1, 1)
+
     def code_interpret(self, codeinput):
+        global state
+        global lexer
+        if codeinput.ind != len(self.layout.children) - 1:
+            state = State()
+            lexer.state = state
+
+            for ci in reversed(self.layout.children):
+                if isinstance(ci, CodeInput) and ci.ind < len(self.layout.children) - 1:
+                    self.reinterpret_line(ci)
+                    ci._trigger_refresh_text()
+
+            return
+
         codeoutput = CodeOutput()
 
         codeinput.bind(on_touch_down=lambda *_: partial(self.open_output, codeoutput=codeoutput)())
@@ -47,13 +73,14 @@ class ScrollableText(ScrollView):
 
         res, err = state.parse(codeinput.text)
 
-        if err:
-            codeoutput.text = str(err)
-            codeoutput.color = (1, 0, 0, 1)
-        else:
-            codeoutput.text = str(res)
+        self.print_output(codeoutput, res, err)
+        
+        codeoutput.texture_update()
+        codeoutput.size = codeoutput.texture_size
 
+        codeinput.out = codeoutput
         self.layout.add_widget(codeoutput)
+        self.add_new_codeline()
 
     def open_output(self, codeoutput):
         for c in self.layout.children:
@@ -66,11 +93,11 @@ class ScrollableText(ScrollView):
     def _hide_widget(self, wid, dohide=True):
         if hasattr(wid, 'saved_attrs'):
             if not dohide:
-                wid.height, wid.size_hint_y, wid.opacity, wid.disabled = wid.saved_attrs
+                wid.height, wid.size_hint_y, wid.opacity = wid.saved_attrs
                 del wid.saved_attrs
         elif dohide:
-            wid.saved_attrs = wid.height, wid.size_hint_y, wid.opacity, wid.disabled
-            wid.height, wid.size_hint_y, wid.opacity, wid.disabled = 0, None, 0, True
+            wid.saved_attrs = wid.height, wid.size_hint_y, wid.opacity
+            wid.height, wid.size_hint_y, wid.opacity = 0, None, 0
 
 
 class AppView(BoxLayout):
