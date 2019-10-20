@@ -17,9 +17,9 @@ class PycalcStyle(Style):
         Name:                   '#EEEEEE',
         Name.Variable:          '#F0F0F0',
         Name.Variable.Magic:    '#A0A0A0',
-        Name.Function:          'bold #B0B0B0',
+        Name.Function:          'bold #7A7A7A',
         Name.Constant:          '#C0FFC0',
-        Operator:               '#B0B0B0',
+        Operator:               '#7A7A7A',
         Operator.Word:          '#505090',
         Punctuation:            '#FFFFFF',
     }
