@@ -2,11 +2,27 @@ from pygments.lexer import RegexLexer, bygroups, using
 from pygments.lexers.agile import PythonLexer
 from pygments import highlight
 from pygments.token import *
+from pygments.style import Style
 from pygments.formatters import get_formatter_by_name
 import sys
 
 from lark import Token
 from numpy import ndarray
+
+
+class PycalcStyle(Style):
+    styles = {
+        Comment:                'italic #205020',
+        String:                 '#905050',
+        Name:                   '#EEEEEE',
+        Name.Variable:          '#F0F0F0',
+        Name.Variable.Magic:    '#A0A0A0',
+        Name.Function:          'bold #B0B0B0',
+        Name.Constant:          '#C0FFC0',
+        Operator:               '#B0B0B0',
+        Operator.Word:          '#505090',
+        Punctuation:            '#FFFFFF',
+    }
 
 class PycalcLexer(RegexLexer):
     name = 'pycalc'
@@ -15,6 +31,7 @@ class PycalcLexer(RegexLexer):
     tokens = {
         'root' : [
             (r'#.*', Comment),
+            (r'\"(.+?)\"', String),
             (r'[a-zA-Z][a-zA-Z0-9]*', Name),
             (r'\d+', Name.Constant),
             (r'=>', Operator.Word),
@@ -29,7 +46,7 @@ class PycalcLexer(RegexLexer):
                 fx = self.state.ctx.get(value)
                 if callable(fx) and fx is not ndarray:
                     yield index, Name.Function, value
-                elif fx is ndarray:
+                elif isinstance(fx, ndarray):
                     yield index, Name.Variable.Magic, value
                 else:
                     yield index, Name.Variable, value

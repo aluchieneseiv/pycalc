@@ -11,13 +11,31 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.codeinput import CodeInput
 from functools import partial
 from newlang import State
-from lexer import PycalcLexer
+from lexer import PycalcLexer, PycalcStyle
+from pygments.styles import get_style_by_name
+from kivy.core.text import LabelBase
 
 Builder.load_file('./main.kv')
 
 state = State()
 lexer = PycalcLexer()
 lexer.state = state
+
+style = PycalcStyle
+
+
+FONTS = [
+    {
+        "name": "VeraMono",
+        "fn_regular": "fonts/VeraMono.ttf",
+        "fn_bold": "fonts/VeraMono-Bold.ttf",
+        "fn_italic": "fonts/VeraMono-Italic.ttf",
+        "fn_bolditalic": "fonts/VeraMono-Bold-Italic.ttf"
+    }
+]
+
+for font in FONTS:
+    LabelBase.register(**font)
 
 
 class ScrollableText(ScrollView):
@@ -31,7 +49,7 @@ class ScrollableText(ScrollView):
         self.add_widget(self.layout)
 
     def add_new_codeline(self):
-        codeinput = PycalcCodeInput(lexer=lexer)
+        codeinput = PycalcCodeInput(lexer=lexer, style=style)
 
         codeinput.bind(on_text_validate=lambda _: partial(self.code_interpret, codeinput=codeinput)())
         codeinput.focus = True
