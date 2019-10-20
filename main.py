@@ -1,19 +1,27 @@
+from functools import partial
+from re import sub
+
 from kivy.app import App
 from kivy.clock import Clock
+from kivy.core.text import LabelBase
+from kivy.garden.matplotlib.backend_kivyagg import FigureCanvasKivyAgg
 from kivy.lang import Builder
 from kivy.uix.anchorlayout import AnchorLayout
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.codeinput import CodeInput
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.scrollview import ScrollView
-from kivy.uix.codeinput import CodeInput
-from functools import partial
-from newlang import State
-from lexer import PycalcLexer, PycalcStyle
+from matplotlib.pyplot import gcf
+from numpy import ndarray
 from pygments.styles import get_style_by_name
-from kivy.core.text import LabelBase
+
+from lexer import PycalcLexer, PycalcStyle
+from newlang import State
+
+from matplotlib.figure import Figure
 
 Builder.load_file('./main.kv')
 
@@ -22,7 +30,6 @@ lexer = PycalcLexer()
 lexer.state = state
 
 style = PycalcStyle
-
 
 FONTS = [
     {
@@ -41,7 +48,8 @@ for font in FONTS:
 class ScrollableText(ScrollView):
     def __init__(self,  **kwargs):
         super(ScrollableText, self).__init__(**kwargs)
-        self.layout = BoxLayout(orientation='vertical', spacing=10, size_hint_y=None)
+        self.layout = BoxLayout(orientation='vertical',
+                                spacing=10, size_hint_y=None)
         self.layout.bind(minimum_height=self.layout.setter('height'))
 
         self.add_new_codeline()
@@ -51,24 +59,39 @@ class ScrollableText(ScrollView):
     def add_new_codeline(self):
         codeinput = PycalcCodeInput(lexer=lexer, style=style)
 
-        codeinput.bind(on_text_validate=lambda _: partial(self.code_interpret, codeinput=codeinput)())
+        codeinput.bind(on_text_validate=lambda _: partial(
+            self.code_interpret, codeinput=codeinput)())
         codeinput.focus = True
         codeinput.ind = len(self.layout.children)
-        
+
         self.layout.add_widget(codeinput)
-    
+
     def reinterpret_line(self, codeinput):
         res, err = state.parse(codeinput.text)
 
         self.print_output(codeinput.out, res, err)
 
     def print_output(self, co, res, err):
-            if err:
-                co.text = str(err)
-                co.color = (1, 0, 0, 1)
+        co.clear_widgets()
+
+        if err:
+            co.text = str(err)
+            co.color = (1, 0, 0, 1)
+        else:
+            if isinstance(res, ndarray):
+                co.text = ' ' + sub(r'[\[\]]', '', str(res))
+            elif isinstance(res, Figure):
+                plot_widget = FigureCanvasKivyAgg(res)
+                plot_widget.size = self.size
+                co.size = plot_widget.size
+                co.add_widget(plot_widget)
+                return
             else:
                 co.text = str(res)
-                co.color = (1, 1, 1, 1)
+            co.color = (1, 1, 1, 1)
+
+        co.text_size = self.width, None
+        co.size_update()
 
     def code_interpret(self, codeinput):
         global state
@@ -86,15 +109,13 @@ class ScrollableText(ScrollView):
 
         codeoutput = CodeOutput()
 
-        codeinput.bind(on_touch_down=lambda *_: partial(self.open_output, codeoutput=codeoutput)())
+        codeinput.bind(
+            on_touch_down=lambda *_: partial(self.open_output, codeoutput=codeoutput)())
         self.open_output(codeoutput)
 
         res, err = state.parse(codeinput.text)
 
         self.print_output(codeoutput, res, err)
-        
-        codeoutput.texture_update()
-        codeoutput.size = codeoutput.texture_size
 
         codeinput.out = codeoutput
         self.layout.add_widget(codeoutput)
@@ -104,9 +125,8 @@ class ScrollableText(ScrollView):
         for c in self.layout.children:
             if isinstance(c, CodeOutput):
                 self._hide_widget(c, True)
-        
-        self._hide_widget(codeoutput, False)
 
+        self._hide_widget(codeoutput, False)
 
     def _hide_widget(self, wid, dohide=True):
         if hasattr(wid, 'saved_attrs'):
@@ -121,15 +141,21 @@ class ScrollableText(ScrollView):
 class AppView(BoxLayout):
     pass
 
+
 class CodeOutput(Label):
-    pass
+    def size_update(self, **kwargs):
+        self.texture_update()
+        self.size = self.texture_size
+
 
 class PycalcCodeInput(CodeInput):
     pass
 
+
 class CalcPyApp(App):
     def build(self):
         return AppView()
+
 
 if __name__ == '__main__':
     CalcPyApp().run()

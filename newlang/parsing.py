@@ -6,6 +6,8 @@ from lark.exceptions import UnexpectedInput, VisitError
 from .operations import op
 from .parsetypes import *
 from importlib import import_module
+from matplotlib import pyplot
+from inspect import getmembers
 
 @v_args(inline=True)
 class CalculateTree(Transformer):
@@ -72,6 +74,7 @@ class CalculateTree(Transformer):
 
 class State:
     global_ctx = Context({o: getattr(np, o) for o in np.__all__ if not isclass(getattr(np, o))})
+    global_ctx.update({o[0]: getattr(pyplot, o[0]) for o in getmembers(pyplot) if not isclass(getattr(pyplot, o[0]))})
     global_ctx.update({
  
         # numpy matrix
@@ -85,6 +88,9 @@ class State:
         # numpy complex
         'j': np.complex(0, 1),
         'complex': np.complex,
+
+        # plotting
+        'show': pyplot.gcf(),
 
         # misc
         'numpy': np,
