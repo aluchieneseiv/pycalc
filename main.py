@@ -66,13 +66,30 @@ class ScrollableText(ScrollView):
         self.add_widget(self.layout)
 
     def add_new_codeline(self, ind=0):
+        def create_clock(widget, touch):
+            if not isinstance(widget, CodeInput):
+                return
+            if not widget.collide_point(*touch.pos):
+                return
+
+            callback = partial(self.add_line_before, widget)
+            Clock.schedule_once(callback, 1)
+            touch.ud['event'] = callback
+
+        def delete_clock(widget, touch):
+            if not isinstance(widget, CodeInput):
+                return
+            if 'event' in touch.ud:
+                Clock.unschedule(touch.ud['event'])
+                del touch.ud['event']
+
         codeinput = PycalcCodeInput(lexer=lexer, style=style)
 
         codeinput.bind(on_text_validate=lambda _: self.code_interpret(codeinput))
-
         codeinput.bind(
-            on_touch_down=self.twin_touch_start,
-            on_touch_up=self.twin_touch_stop)
+            on_touch_down=create_clock,
+            on_touch_up=delete_clock
+            )
 
         codeinput.focus = True
         if ind == 0:
@@ -82,37 +99,16 @@ class ScrollableText(ScrollView):
 
         self.layout.add_widget(codeinput, index=ind)
 
-    def twin_touch_start(self, instance, touch):
-        if not instance.collide_point(*touch.pos):
+    def add_line_before(self, codeinput, *args):
+        if codeinput == self.layout.children[0]:
             return
 
-        if instance == self.layout.children[0]:
-            return
+        ind = codeinput.ind
+        for wid in self.layout.children:
+            if hasattr(wid, 'ind') and wid.ind >= ind:
+                wid.ind += 2
 
-        if self.codeinput_touced_ind == [-1, -1]:
-            touch.ud['touch_ind'] = 0
-            self.codeinput_touced_ind[0] = instance.ind
-        else:
-            touch.ud['touch_ind'] = 1
-            self.codeinput_touced_ind[1] = instance.ind
-        
-        if self.codeinput_touced_ind != [-1, -1] and abs(self.codeinput_touced_ind[0] - self.codeinput_touced_ind[1]) == 2:
-            ind_max = max(self.codeinput_touced_ind)
-
-            for wid in self.layout.children:
-                if hasattr(wid, 'ind') and wid.ind >= ind_max:
-                    wid.ind += 2
-
-            self.add_new_codeline(len(self.layout.children)-ind_max)
-
-            self.codeinput_touched_ind = [-1, -1]
-
-            return True
-
-    def twin_touch_stop(self, instance, touch):
-        if 'touch_ind' in touch.ud:
-            self.codeinput_touced_ind[touch.ud['touch_ind']] = -1
-            del touch.ud['touch_ind']
+        self.add_new_codeline(len(self.layout.children)-ind)
 
     def reinterpret_line(self, codeinput):
         if len(codeinput.text.strip()) == 0:
@@ -326,18 +322,22 @@ class CalcPyApp(App):
             Clock.schedule_once(lost_focus, 2)
             btn.unbind(on_release=choice_callback)
 
-        def create_clock(self, touch, widget, choice_callback, *args):
+        def create_clock(widget, touch, choice_callback, *args):
+            if not isinstance(widget, Button):
+                return
+
             if not widget.collide_point(*touch.pos):
-                return False
+                return
 
             callback = partial(want_delete, widget, choice_callback)
             Clock.schedule_once(callback, 0.5)
             touch.ud['event'] = callback
 
 
-        def delete_clock(self, touch, widget, *args):
-            if not self.collide_point(*touch.pos):
+        def delete_clock(widget, touch, *args):
+            if not isinstance(widget, Button):
                 return
+
             if 'event' in touch.ud:
                 Clock.unschedule(touch.ud['event'])
                 del touch.ud['event']
@@ -355,7 +355,10 @@ class CalcPyApp(App):
 
             popup.dismiss()
 
-        content = BoxLayout(orientation='vertical')
+        scroll_content = ScrollView()
+        content = BoxLayout(orientation='vertical', size_hint_y=None) 
+        content.bind(minimum_height=content.setter('height'))
+        scroll_content.add_widget(content)
         for item in self.store:
             btn = Button(text=item)
             btn.size= content.width, 50
@@ -363,8 +366,8 @@ class CalcPyApp(App):
 
             choice_callback = lambda _:choice(item)
             btn.bind(
-                on_touch_down=partial(create_clock, widget=btn, choice_callback=choice_callback),
-                on_touch_up=partial(delete_clock, widget=btn))
+                on_touch_down=partial(create_clock, choice_callback=choice_callback),
+                on_touch_up=delete_clock)
             btn.bind(on_release=choice_callback)
             content.add_widget(btn)
         close_btn = Button(text='Cancel')
@@ -372,7 +375,7 @@ class CalcPyApp(App):
         close_btn.height = 50
         close_btn.bind(on_press=popup.dismiss)
         content.add_widget(close_btn)
-        popup.content = content
+        popup.content = scroll_content
 
         popup.open()
 
