@@ -52,6 +52,8 @@ for font in FONTS:
 
 
 class ScrollableText(ScrollView):
+    codeinput_touced_ind = [-1, -1]
+
     def __init__(self,  **kwargs):
         super(ScrollableText, self).__init__(**kwargs)
 
@@ -63,19 +65,72 @@ class ScrollableText(ScrollView):
 
         self.add_widget(self.layout)
 
-    def add_new_codeline(self):
+    def add_new_codeline(self, ind=0):
         codeinput = PycalcCodeInput(lexer=lexer, style=style)
 
         codeinput.bind(on_text_validate=lambda _: self.code_interpret(codeinput))
-        codeinput.focus = True
-        codeinput.ind = len(self.layout.children)
 
-        self.layout.add_widget(codeinput)
+        codeinput.bind(
+            on_touch_down=self.twin_touch_start,
+            on_touch_up=self.twin_touch_stop)
+
+        codeinput.focus = True
+        if ind == 0:
+            codeinput.ind = len(self.layout.children)
+        else:
+            codeinput.ind = len(self.layout.children) - ind
+
+        self.layout.add_widget(codeinput, index=ind)
+
+    def twin_touch_start(self, instance, touch):
+        if not instance.collide_point(*touch.pos):
+            return
+
+        if instance == self.layout.children[0]:
+            return
+
+        if self.codeinput_touced_ind == [-1, -1]:
+            touch.ud['touch_ind'] = 0
+            self.codeinput_touced_ind[0] = instance.ind
+        else:
+            touch.ud['touch_ind'] = 1
+            self.codeinput_touced_ind[1] = instance.ind
+        
+        if self.codeinput_touced_ind != [-1, -1] and abs(self.codeinput_touced_ind[0] - self.codeinput_touced_ind[1]) == 2:
+            ind_max = max(self.codeinput_touced_ind)
+
+            for wid in self.layout.children:
+                if hasattr(wid, 'ind') and wid.ind >= ind_max:
+                    wid.ind += 2
+
+            self.add_new_codeline(len(self.layout.children)-ind_max)
+
+            self.codeinput_touched_ind = [-1, -1]
+
+            return True
+
+    def twin_touch_stop(self, instance, touch):
+        if 'touch_ind' in touch.ud:
+            self.codeinput_touced_ind[touch.ud['touch_ind']] = -1
+            del touch.ud['touch_ind']
 
     def reinterpret_line(self, codeinput):
+        if len(codeinput.text.strip()) == 0:
+            if hasattr(codeinput, 'out'):
+                self.layout.remove_widget(codeinput.out)
+            self.layout.remove_widget(codeinput)
+
+            for wid in list(reversed(self.layout.children))[codeinput.ind:]:
+                if hasattr(wid, 'ind'):
+                    wid.ind -= 2
+            return
+
         res, err = state.parse(codeinput.text)
 
-        self.print_output(codeinput.out, res, err)
+        if hasattr(codeinput, 'out'):
+            self.print_output(codeinput.out, res, err)
+        else:
+            self.make_output(codeinput, res, err)
 
     def print_output(self, co, res, err):
         self._hide_widget(co, False)
@@ -104,31 +159,40 @@ class ScrollableText(ScrollView):
     def code_interpret(self, codeinput):
         global state
         global lexer
-        if codeinput.ind != len(self.layout.children) - 1:
+        if codeinput != self.layout.children[0]:
             state = State()
             lexer.state = state
 
             for ci in reversed(self.layout.children):
-                if isinstance(ci, CodeInput) and ci.ind < len(self.layout.children) - 1:
+                if isinstance(ci, CodeInput) and ci != self.layout.children[0]:
                     self.reinterpret_line(ci)
                     ci._trigger_refresh_text()
 
-            self.open_output(codeinput.out)
+            if hasattr(codeinput, 'out'):
+                self.open_output(codeinput.out)
 
             return
 
+        if len(codeinput.text.strip()) == 0:
+            return
+
+        res, err = state.parse(codeinput.text)
+
+        self.make_output(codeinput, res, err)
+
+        self.add_new_codeline()
+
+    def make_output(self, codeinput, res, err):
         codeoutput = CodeOutput()
 
         codeinput.bind(on_touch_down=lambda *_: self.open_output(codeoutput))
-
-        res, err = state.parse(codeinput.text)
 
         self.print_output(codeoutput, res, err)
         self.open_output(codeoutput)
 
         codeinput.out = codeoutput
-        self.layout.add_widget(codeoutput)
-        self.add_new_codeline()
+        ind = len(self.layout.children) - codeinput.ind - 1
+        self.layout.add_widget(codeoutput, ind)
 
     def open_output(self, codeoutput):
         for c in self.layout.children:
@@ -203,7 +267,7 @@ class CalcPyApp(App):
         save_btn.bind(on_press=lambda _: show_s_in())
         side_panel.add_widget(save_btn)
 
-        s_in.bind(on_text_validate= lambda instance: self.save_script(instance.text))
+        s_in.bind(on_text_validate= lambda instance: self.save_script(instance.text.strip()))
         s_in.bind(focused=lambda _, x: hide_s_in(x))
         hide_s_in()
 
@@ -259,17 +323,24 @@ class CalcPyApp(App):
             btn.text = 'delete?'
             btn.color = (1, 0, 0, 1)
             btn.bind(on_press=callback)
-            Clock.schedule_once(lost_focus, 1)
+            Clock.schedule_once(lost_focus, 2)
             btn.unbind(on_release=choice_callback)
 
         def create_clock(self, touch, widget, choice_callback, *args):
+            if not widget.collide_point(*touch.pos):
+                return False
+
             callback = partial(want_delete, widget, choice_callback)
             Clock.schedule_once(callback, 0.5)
             touch.ud['event'] = callback
 
-        def delete_clock(self, touch, *args):
+
+        def delete_clock(self, touch, widget, *args):
+            if not self.collide_point(*touch.pos):
+                return
             if 'event' in touch.ud:
                 Clock.unschedule(touch.ud['event'])
+                del touch.ud['event']
 
         def choice(name):
             self.new_script()
@@ -293,7 +364,7 @@ class CalcPyApp(App):
             choice_callback = lambda _:choice(item)
             btn.bind(
                 on_touch_down=partial(create_clock, widget=btn, choice_callback=choice_callback),
-                on_touch_up=delete_clock)
+                on_touch_up=partial(delete_clock, widget=btn))
             btn.bind(on_release=choice_callback)
             content.add_widget(btn)
         close_btn = Button(text='Cancel')
